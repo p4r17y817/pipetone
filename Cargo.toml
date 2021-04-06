@@ -1,0 +1,12 @@
+[package]
+name = "pipetone"
+version = "0.1.0"
+authors = ["p4r17y817 <christian.dunn@warwick.ac.uk>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+image = "0.23.14"
+ndarray = "0.15.1"
+structopt = "0.3.21"
