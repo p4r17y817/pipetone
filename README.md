@@ -1,4 +1,4 @@
-# Pipetone: a halftone representation of an image made of threads
+# Pipetone 🧵
 
 🚀 A fast and Rusty port of `threadTone.py`
 
@@ -6,20 +6,20 @@
 
 This binary crate converts images into their "threaded" counterparts, given information about the number of threads and pins to use.
 
-1. The target image undergoes pre-processing transformations
-1. This pre-processed image is used to draw a sequence of threads to a canvas
-1. The canvas is saved to the target directory
+1. Target image is preprocessed for threading
+1. The new image is used to draw a continuous thread across a sequence of pins on a virtual circular loom
+1. The "threading" is saved to the target directory
 
 Feedback and PRs are encouraged!
 
-## Usage
+## 🛠️ Usage
 
 ### Example
 
 This assumes the latest version of [`cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html) is installed.
 
 ```bash
-cargo run --release thread_me.png
+❯ cargo run --release thread_me.png
 ```
 
 This runs pipetone in release mode (see [Performance](#performance) and [Notes](#notes)) on `thread_me.png` (leaving it unaltered) and conjures its "threaded" twin at `./threaded.png`.
@@ -29,7 +29,7 @@ This runs pipetone in release mode (see [Performance](#performance) and [Notes](
 Pipetone uses the following options and defaults:
 Short Option | Long Option | Default | Description
 -|-|-|-
-`-l`|`--lines`|1000|Maximum number of lines/threads used
+`-t`|`--threads`|1000|Maximum number of threads used
 `-p`|`--pins`|200|Number of pins on the circular loom
 `-r`|`--radius`|min(height, width)|Determines output image size: radius x radius
 `-o`|`--output`|Input image directory|Output image location and/or name
@@ -37,10 +37,10 @@ Short Option | Long Option | Default | Description
 According to the above table, the following command is equivalent to the example given:
 
 ```bash
-cargo run --release thread_me.png -l 1000 --pins 200 -r 1000 -o threaded.png
+❯ cargo run --release thread_me.png -l 1000 --pins 200 -r 1000 -o threaded.png
 ```
 
-## Results
+## 🖼️ Results
 
 A cherry-picked handful:
 
@@ -105,7 +105,7 @@ The patterns observed in the upper-rightmost corner of each table seem to occur 
 500|<img src="./images/boris_500_500.png" width="135">|<img src="./images/boris_500_1000.png" width="135">|<img src="./images/boris_500_2000.png" width="135">|<img src="./images/boris_500_5000.png" width="135">
 1000|<img src="./images/boris_1000_500.png" width="135">|<img src="./images/boris_1000_1000.png" width="135">|<img src="./images/boris_1000_2000.png" width="135">|<img src="./images/boris_1000_5000.png" width="135">
 
-## Performance
+## 🚀 Performance
 
 Rough measurement using the `time` utility yields the following execution times. The same 1920x1080 image and parameters (`threadTone.py`'s defaults) were used:
 
