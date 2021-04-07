@@ -1,6 +1,8 @@
 # Pipetone: a halftone representation of an image made of threads
 
-A Rusty port of `threadTone.py`! Full credit goes to [@theveloped](https://github.com/theveloped) for [inspiring](https://github.com/theveloped/ThreadTone) this implementation.
+🚀 A fast and Rusty port of `threadTone.py`
+
+🌟 Full credit goes to [@theveloped](https://github.com/theveloped) for inspiring this implementation: check out their work [here](https://github.com/theveloped/ThreadTone)!
 
 This binary crate converts images into their "threaded" counterparts, given information about the number of threads and pins to use.
 
@@ -20,7 +22,7 @@ This assumes the latest version of [`cargo`](https://doc.rust-lang.org/cargo/get
 cargo run --release thread_me.png
 ```
 
-This runs pipetone in release mode (see [Notes](#notes)) on `thread_me.png` (leaving it unaltered) and conjures its "threaded" twin at `./threaded.png`.
+This runs pipetone in release mode (see [Performance](#performance) and [Notes](#notes)) on `thread_me.png` (leaving it unaltered) and conjures its "threaded" twin at `./threaded.png`.
 
 ### Options
 
@@ -42,13 +44,9 @@ cargo run --release thread_me.png -l 1000 --pins 200 -r 1000 -o threaded.png
 
 A cherry-picked handful:
 
-<center>
-    <img src="./images/house_1000_2000.png" width="135">
-    <img src="./images/trump_1000_2000.png" width="135">
-    <img src="./images/obama_1000_5000.png" width="135">
-    <img src="./images/putin_1000_2000.png" width="135">
-    <img src="./images/boris_1000_5000.png" width="135">
-</center>
+House (p=1000, l=2000)|Trump (p=1000, l=2000)|Obama (p=1000, l=5000)|Putin (p=1000, l=2000)|Boris (p=1000, l=5000)
+-|-|-|-|-
+<img src="./images/house_1000_2000.png" width="135">|<img src="./images/trump_1000_2000.png" width="135">|<img src="./images/obama_1000_5000.png" width="135">|<img src="./images/putin_1000_2000.png" width="135">|<img src="./images/boris_1000_5000.png" width="135">
 
 The patterns observed in the upper-rightmost corner of each table seem to occur when the thread can no longer fill any more of the image productively, but is able to find a sequence of pins that prevent the algorithm from halting early.
 
@@ -56,56 +54,56 @@ The patterns observed in the upper-rightmost corner of each table seem to occur 
 
 <img src="./images/house.jpg" width="150">
 
-`pins` | `lines` | 500 | 1000 | 2000 | 5000
--|-|-|-|-|-
-100||<img src="./images/house_100_500.png" width="135">|<img src="./images/house_100_1000.png" width="135">|<img src="./images/house_100_2000.png" width="135">|<img src="./images/house_100_5000.png" width="135">
-200||<img src="./images/house_200_500.png" width="135">|<img src="./images/house_200_1000.png" width="135">|<img src="./images/house_200_2000.png" width="135">|<img src="./images/house_200_5000.png" width="135">
-500||<img src="./images/house_500_500.png" width="135">|<img src="./images/house_500_1000.png" width="135">|<img src="./images/house_500_2000.png" width="135">|<img src="./images/house_500_5000.png" width="135">
-1000||<img src="./images/house_1000_500.png" width="135">|<img src="./images/house_1000_1000.png" width="135">|<img src="./images/house_1000_2000.png" width="135">|<img src="./images/house_1000_5000.png" width="135">
+`pins/lines` | 500 | 1000 | 2000 | 5000
+-|-|-|-|-
+100|<img src="./images/house_100_500.png" width="135">|<img src="./images/house_100_1000.png" width="135">|<img src="./images/house_100_2000.png" width="135">|<img src="./images/house_100_5000.png" width="135">
+200|<img src="./images/house_200_500.png" width="135">|<img src="./images/house_200_1000.png" width="135">|<img src="./images/house_200_2000.png" width="135">|<img src="./images/house_200_5000.png" width="135">
+500|<img src="./images/house_500_500.png" width="135">|<img src="./images/house_500_1000.png" width="135">|<img src="./images/house_500_2000.png" width="135">|<img src="./images/house_500_5000.png" width="135">
+1000|<img src="./images/house_1000_500.png" width="135">|<img src="./images/house_1000_1000.png" width="135">|<img src="./images/house_1000_2000.png" width="135">|<img src="./images/house_1000_5000.png" width="135">
 
 ### Donald Trump
 
 <img src="./images/trump.jpg" width="150">
 
-`pins` | `lines` | 500 | 1000 | 2000 | 5000
--|-|-|-|-|-
-100||<img src="./images/trump_100_500.png" width="135">|<img src="./images/trump_100_1000.png" width="135">|<img src="./images/trump_100_2000.png" width="135">|<img src="./images/trump_100_5000.png" width="135">
-200||<img src="./images/trump_200_500.png" width="135">|<img src="./images/trump_200_1000.png" width="135">|<img src="./images/trump_200_2000.png" width="135">|<img src="./images/trump_200_5000.png" width="135">
-500||<img src="./images/trump_500_500.png" width="135">|<img src="./images/trump_500_1000.png" width="135">|<img src="./images/trump_500_2000.png" width="135">|<img src="./images/trump_500_5000.png" width="135">
-1000||<img src="./images/trump_1000_500.png" width="135">|<img src="./images/trump_1000_1000.png" width="135">|<img src="./images/trump_1000_2000.png" width="135">|<img src="./images/trump_1000_5000.png" width="135">
+`pins/lines` | 500 | 1000 | 2000 | 5000
+-|-|-|-|-
+100|<img src="./images/trump_100_500.png" width="135">|<img src="./images/trump_100_1000.png" width="135">|<img src="./images/trump_100_2000.png" width="135">|<img src="./images/trump_100_5000.png" width="135">
+200|<img src="./images/trump_200_500.png" width="135">|<img src="./images/trump_200_1000.png" width="135">|<img src="./images/trump_200_2000.png" width="135">|<img src="./images/trump_200_5000.png" width="135">
+500|<img src="./images/trump_500_500.png" width="135">|<img src="./images/trump_500_1000.png" width="135">|<img src="./images/trump_500_2000.png" width="135">|<img src="./images/trump_500_5000.png" width="135">
+1000|<img src="./images/trump_1000_500.png" width="135">|<img src="./images/trump_1000_1000.png" width="135">|<img src="./images/trump_1000_2000.png" width="135">|<img src="./images/trump_1000_5000.png" width="135">
 
 ### Barack Obama
 
 <img src="./images/obama.jpg" width="150">
 
-`pins` | `lines` | 500 | 1000 | 2000 | 5000
--|-|-|-|-|-
-100||<img src="./images/obama_100_500.png" width="135">|<img src="./images/obama_100_1000.png" width="135">|<img src="./images/obama_100_2000.png" width="135">|<img src="./images/obama_100_5000.png" width="135">
-200||<img src="./images/obama_200_500.png" width="135">|<img src="./images/obama_200_1000.png" width="135">|<img src="./images/obama_200_2000.png" width="135">|<img src="./images/obama_200_5000.png" width="135">
-500||<img src="./images/obama_500_500.png" width="135">|<img src="./images/obama_500_1000.png" width="135">|<img src="./images/obama_500_2000.png" width="135">|<img src="./images/obama_500_5000.png" width="135">
-1000||<img src="./images/obama_1000_500.png" width="135">|<img src="./images/obama_1000_1000.png" width="135">|<img src="./images/obama_1000_2000.png" width="135">|<img src="./images/obama_1000_5000.png" width="135">
+`pins/lines` | 500 | 1000 | 2000 | 5000
+-|-|-|-|-
+100|<img src="./images/obama_100_500.png" width="135">|<img src="./images/obama_100_1000.png" width="135">|<img src="./images/obama_100_2000.png" width="135">|<img src="./images/obama_100_5000.png" width="135">
+200|<img src="./images/obama_200_500.png" width="135">|<img src="./images/obama_200_1000.png" width="135">|<img src="./images/obama_200_2000.png" width="135">|<img src="./images/obama_200_5000.png" width="135">
+500|<img src="./images/obama_500_500.png" width="135">|<img src="./images/obama_500_1000.png" width="135">|<img src="./images/obama_500_2000.png" width="135">|<img src="./images/obama_500_5000.png" width="135">
+1000|<img src="./images/obama_1000_500.png" width="135">|<img src="./images/obama_1000_1000.png" width="135">|<img src="./images/obama_1000_2000.png" width="135">|<img src="./images/obama_1000_5000.png" width="135">
 
 ### Vladimir Putin
 
 <img src="./images/putin.jpg" width="150">
 
-`pins` | `lines` | 500 | 1000 | 2000 | 5000
--|-|-|-|-|-
-100||<img src="./images/putin_100_500.png" width="135">|<img src="./images/putin_100_1000.png" width="135">|<img src="./images/putin_100_2000.png" width="135">|<img src="./images/putin_100_5000.png" width="135">
-200||<img src="./images/putin_200_500.png" width="135">|<img src="./images/putin_200_1000.png" width="135">|<img src="./images/putin_200_2000.png" width="135">|<img src="./images/putin_200_5000.png" width="135">
-500||<img src="./images/putin_500_500.png" width="135">|<img src="./images/putin_500_1000.png" width="135">|<img src="./images/putin_500_2000.png" width="135">|<img src="./images/putin_500_5000.png" width="135">
-1000||<img src="./images/putin_1000_500.png" width="135">|<img src="./images/putin_1000_1000.png" width="135">|<img src="./images/putin_1000_2000.png" width="135">|<img src="./images/putin_1000_5000.png" width="135">
+`pins/lines` | 500 | 1000 | 2000 | 5000
+-|-|-|-|-
+100|<img src="./images/putin_100_500.png" width="135">|<img src="./images/putin_100_1000.png" width="135">|<img src="./images/putin_100_2000.png" width="135">|<img src="./images/putin_100_5000.png" width="135">
+200|<img src="./images/putin_200_500.png" width="135">|<img src="./images/putin_200_1000.png" width="135">|<img src="./images/putin_200_2000.png" width="135">|<img src="./images/putin_200_5000.png" width="135">
+500|<img src="./images/putin_500_500.png" width="135">|<img src="./images/putin_500_1000.png" width="135">|<img src="./images/putin_500_2000.png" width="135">|<img src="./images/putin_500_5000.png" width="135">
+1000|<img src="./images/putin_1000_500.png" width="135">|<img src="./images/putin_1000_1000.png" width="135">|<img src="./images/putin_1000_2000.png" width="135">|<img src="./images/putin_1000_5000.png" width="135">
 
 ### Boris Johnson
 
 <img src="./images/boris.jpg" width="150">
 
-`pins` | `lines` | 500 | 1000 | 2000 | 5000
--|-|-|-|-|-
-100||<img src="./images/boris_100_500.png" width="135">|<img src="./images/boris_100_1000.png" width="135">|<img src="./images/boris_100_2000.png" width="135">|<img src="./images/boris_100_5000.png" width="135">
-200||<img src="./images/boris_200_500.png" width="135">|<img src="./images/boris_200_1000.png" width="135">|<img src="./images/boris_200_2000.png" width="135">|<img src="./images/boris_200_5000.png" width="135">
-500||<img src="./images/boris_500_500.png" width="135">|<img src="./images/boris_500_1000.png" width="135">|<img src="./images/boris_500_2000.png" width="135">|<img src="./images/boris_500_5000.png" width="135">
-1000||<img src="./images/boris_1000_500.png" width="135">|<img src="./images/boris_1000_1000.png" width="135">|<img src="./images/boris_1000_2000.png" width="135">|<img src="./images/boris_1000_5000.png" width="135">
+`pins/lines` | 500 | 1000 | 2000 | 5000
+-|-|-|-|-
+100|<img src="./images/boris_100_500.png" width="135">|<img src="./images/boris_100_1000.png" width="135">|<img src="./images/boris_100_2000.png" width="135">|<img src="./images/boris_100_5000.png" width="135">
+200|<img src="./images/boris_200_500.png" width="135">|<img src="./images/boris_200_1000.png" width="135">|<img src="./images/boris_200_2000.png" width="135">|<img src="./images/boris_200_5000.png" width="135">
+500|<img src="./images/boris_500_500.png" width="135">|<img src="./images/boris_500_1000.png" width="135">|<img src="./images/boris_500_2000.png" width="135">|<img src="./images/boris_500_5000.png" width="135">
+1000|<img src="./images/boris_1000_500.png" width="135">|<img src="./images/boris_1000_1000.png" width="135">|<img src="./images/boris_1000_2000.png" width="135">|<img src="./images/boris_1000_5000.png" width="135">
 
 ## Performance
 
