@@ -35,7 +35,7 @@ Short Option | Long Option | Default | Description
 According to the above table, the following command is equivalent to the example given:
 
 ```bash
-cargo run --release thread_me.png -l 1000 --pins 200 -r 1000 -o "threaded.png"
+cargo run --release thread_me.png -l 1000 --pins 200 -r 1000 -o threaded.png
 ```
 
 ## Results
