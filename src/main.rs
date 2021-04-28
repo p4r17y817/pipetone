@@ -3,8 +3,8 @@ use image::{
     imageops::crop, imageops::grayscale, imageops::invert, imageops::resize, imageops::FilterType,
     open, DynamicImage, GenericImageView, GrayImage, Luma, SubImage,
 };
-use ndarray::{Array, Array1};
-use std::{cmp, path::Path, path::PathBuf};
+use ndarray::{array, Array, Array1};
+use std::{cmp, f32::consts::PI, path::Path, path::PathBuf};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -43,6 +43,11 @@ struct Opt {
         help = "Skip image generation. Unset by default. Used with --csv"
     )]
     no_img: bool,
+    #[structopt(
+        long,
+        help = "Write thread end-point coordinates instead of pin numbers to CSV. Used with --csv"
+    )]
+    write_threads: bool,
 }
 
 fn main() {
@@ -65,6 +70,7 @@ fn main() {
         csv,
         csv_header,
         no_img,
+        write_threads,
     } = Opt::from_args();
 
     let img = open(&path).expect("Couldn't load target image");
@@ -84,19 +90,33 @@ fn main() {
     if !no_img {
         save_img(&mut out_dir, &prefix, &thread_coords, length);
     }
+
     if csv {
-        save_csv(&mut out_dir, &prefix, &thread_coords, csv_header);
+        let optional_header = csv_header.then(|| {
+            if write_threads {
+                vec!["x1", "y1", "x2", "y2"]
+            } else {
+                vec!["pins"]
+            }
+        });
+        save_csv(
+            &mut out_dir,
+            &prefix,
+            &thread_coords,
+            optional_header,
+            write_threads,
+        );
     }
 }
 
 fn save_img(
     out_dir: &mut PathBuf,
     prefix: &str,
-    thread_coords: &[(Array1<u32>, Array1<u32>)],
+    thread_coords: &[(Array1<u32>, Array1<u32>, usize)],
     length: u32,
 ) {
     let mut img_threaded = GrayImage::from_pixel(length, length, Luma([255]));
-    thread_coords.iter().for_each(|(x_line, y_line)| {
+    thread_coords.iter().for_each(|(x_line, y_line, _)| {
         x_line.iter().zip(y_line.iter()).for_each(|(x, y)| {
             img_threaded[(*x, *y)].0[0] = 0;
         })
@@ -111,20 +131,20 @@ fn save_img(
 fn save_csv(
     out_dir: &mut PathBuf,
     prefix: &str,
-    thread_coords: &[(Array1<u32>, Array1<u32>)],
-    csv_header: bool,
+    thread_coords: &[(Array1<u32>, Array1<u32>, usize)],
+    optional_header: Option<Vec<&str>>,
+    write_threads: bool,
 ) {
     out_dir.set_file_name(format!("{}_threads", prefix));
     out_dir.set_extension("csv");
     let mut writer = Writer::from_path(&out_dir).expect("Failed to save threads CSV");
-    if csv_header {
+    if let Some(header) = optional_header {
         writer
-            .write_record(&["x1", "y1", "x2", "y2"])
+            .write_record(&header)
             .expect("Failed to write header");
     }
-    thread_coords
-        .iter()
-        .map(|(x_line, y_line)| {
+    let formatter = if write_threads {
+        |(x_line, y_line, _): &(Array1<u32>, Array1<u32>, usize)| {
             let last = x_line.len() - 1;
             vec![
                 format!("{}", x_line[0]),
@@ -132,10 +152,13 @@ fn save_csv(
                 format!("{}", x_line[last]),
                 format!("{}", y_line[last]),
             ]
-        })
-        .for_each(|thread| {
-            writer.write_record(thread).expect("Failed to write thread");
-        });
+        }
+    } else {
+        |(_, _, pin): &(Array1<u32>, Array1<u32>, usize)| vec![format!("{}", pin)]
+    };
+    thread_coords.iter().map(formatter).for_each(|thread| {
+        writer.write_record(thread).expect("Failed to write thread");
+    });
 }
 
 fn generate_threads(
@@ -144,23 +167,22 @@ fn generate_threads(
     num_pins: usize,
     radius: u32,
     length: u32,
-) -> Vec<(Array1<u32>, Array1<u32>)> {
+) -> Vec<(Array1<u32>, Array1<u32>, usize)> {
     let mut img_preprocessed = preprocess_img(img, radius, length);
-    let pin_coords = Array::linspace(0., 2. * std::f32::consts::PI, num_pins + 1)
-        .iter()
-        .map(|alpha| {
-            Array::from_vec(vec![
-                radius as f32 * (1. + alpha.cos()),
-                radius as f32 * (1. + alpha.sin()),
-            ])
-        })
-        .collect::<Vec<_>>();
+    let pin_coords = Array::linspace(0., 2. * PI, num_pins + 1).mapv(|alpha| {
+        array![
+            radius as f32 * (1. + alpha.cos()),
+            radius as f32 * (1. + alpha.sin()),
+        ]
+    });
+
     let mut threads = Vec::with_capacity(max_threads);
-    let mut prev_pins = Vec::with_capacity(2);
+    let mut prev_pins = [0; 2];
     let mut old_pin = 0;
     let mut best_pin = 0;
-    let mut best_xline = Array::default(1);
-    let mut best_yline = Array::default(1);
+    let mut best_xline = array![];
+    let mut best_yline = array![];
+
     for i in 0..max_threads {
         let mut best_line = 0;
         let old_coord = &pin_coords[old_pin];
@@ -171,9 +193,9 @@ fn generate_threads(
             let x_line = Array::linspace(old_coord[0], pin_coord[0], length).mapv(|x| x as u32);
             let y_line = Array::linspace(old_coord[1], pin_coord[1], length).mapv(|y| y as u32);
             let line_sum = x_line
-                .into_iter()
-                .zip(y_line.into_iter())
-                .map(|(x, y)| img_preprocessed[(*x, *y)].0[0] as u32)
+                .iter()
+                .zip(y_line.iter())
+                .map(|(&x, &y)| img_preprocessed[(x, y)].0[0] as u32)
                 .sum();
             if line_sum > best_line && !prev_pins.contains(&pin) {
                 best_line = line_sum;
@@ -183,12 +205,10 @@ fn generate_threads(
             }
         }
 
-        if prev_pins.len() > 2 {
-            prev_pins.pop();
-        }
-        prev_pins.push(best_pin);
+        prev_pins.swap(0, 1);
+        prev_pins[1] = best_pin;
 
-        threads.push((best_xline.clone(), best_yline.clone()));
+        threads.push((best_xline.clone(), best_yline.clone(), best_pin));
         best_xline
             .iter()
             .zip(best_yline.iter())

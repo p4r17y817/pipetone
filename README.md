@@ -153,58 +153,28 @@ Rough measurement using the `time` utility yields the following execution times.
 ### pipetone
 
 ```bash
-❯ time ./target/release/pipetone images/house.jpg -p 200 -r 500
-           _            __
-    ____  (_)___  ___  / /_____  ____  ___
-   / __ \/ / __ \/ _ \/ __/ __ \/ __ \/ _ \
-  / /_/ / / /_/ /  __/ /_/ /_/ / / / /  __/
- / .___/_/ .___/\___/\__/\____/_/ /_/\___/
-/_/     /_/
-
-Placing thread 1000/1000
-
-real    0m1.248s
-user    0m1.188s
-sys     0m0.141s
+❯ hyperfine --warmup 3 'target/release/pipetone images/house.jpg -p 200 -r 500'
+Benchmark #1: target/release/pipetone images/house.jpg -p 200 -r 500
+  Time (mean ± σ):     997.9 ms ±  14.6 ms    [User: 994.5 ms, System: 95.5 ms]
+  Range (min … max):   978.3 ms … 1023.3 ms    10 runs
 ```
 
 ### Threadtone
 
 ```bash
-❯ time python3 threadTone.py -p images/house.jpg
-
-   __  __                        ________
-  / /_/ /_  ________  ____ _____/ /_  __/___  ____  ___
- / __/ __ \/ ___/ _ \/ __ `/ __  / / / / __ \/ __ \/ _ \
-/ /_/ / / / /  /  __/ /_/ / /_/ / / / / /_/ / / / /  __/
-\__/_/ /_/_/   \___/\__,_/\__,_/ /_/  \____/_/ /_/\___/
-
-...
-
-[+] Computing line 1000 of 1000 total
-[+] Image threaded
-
-real    0m36.690s
-user    0m35.984s
-sys     0m0.625s
+❯ hyperfine --warmup 3 'python3 threadTone.py images/house.jpg'
+Benchmark #1: python3 threadTone.py images/house.jpg
+  Time (mean ± σ):     21.941 s ±  0.513 s    [User: 22.322 s, System: 0.957 s]
+  Range (min … max):   21.522 s … 23.110 s    10 runs
 ```
 
 ### Debug Mode: A Cautionary Tale...
 
 ```bash
-❯ time ./target/debug/pipetone images/house.jpg -p 200 -r 500
-           _            __
-    ____  (_)___  ___  / /_____  ____  ___
-   / __ \/ / __ \/ _ \/ __/ __ \/ __ \/ _ \
-  / /_/ / / /_/ /  __/ /_/ /_/ / / / /  __/
- / .___/_/ .___/\___/\__/\____/_/ /_/\___/
-/_/     /_/
-
-Placing thread 1000/1000
-
-real    0m48.800s
-user    0m50.688s
-sys     0m0.078s
+❯ hyperfine --warmup 3 'target/debug/pipetone images/house.jpg -p 200 -r 500'
+Benchmark #1: target/debug/pipetone images/house.jpg -p 200 -r 500
+  Time (mean ± σ):     52.381 s ±  3.390 s    [User: 54.234 s, System: 0.088 s]
+  Range (min … max):   48.479 s … 59.454 s    10 runs
 ```
 
 ## Notes
