@@ -4,7 +4,7 @@ use image::{
     open, DynamicImage, GenericImageView, GrayImage, Luma, SubImage,
 };
 use ndarray::{array, Array, Array1};
-use std::{cmp, f32::consts::PI, path::Path, path::PathBuf};
+use std::{cmp, f32::consts::PI, path::PathBuf};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -23,7 +23,7 @@ struct Opt {
     #[structopt(
         short,
         long,
-        help = "Side length of output image. Should be no greater than l = min(width, height). Defaults to l otherwise, or if omitted"
+        help = "Radius of output image in pixels. Should be no greater than l = min(input_width, input_height). Defaults to l otherwise, or if omitted"
     )]
     radius: Option<u32>,
     #[structopt(short, long, parse(from_os_str), help = "Path to output image")]
@@ -35,9 +35,9 @@ struct Opt {
     csv: bool,
     #[structopt(
         long,
-        help = "Include CSV header line: \"x1, y1, x2, y2\". Unset by default. Used with --csv"
+        help = "Include CSV header line. If --write-coords then the value is \"x1, y1, x2, y2\", otherwise \"pins\". Unset by default. Used with --csv"
     )]
-    csv_header: bool,
+    header: bool,
     #[structopt(
         long,
         help = "Skip image generation. Unset by default. Used with --csv"
@@ -45,9 +45,9 @@ struct Opt {
     no_img: bool,
     #[structopt(
         long,
-        help = "Write thread end-point coordinates instead of pin numbers to CSV. Used with --csv"
+        help = "Write thread end-point pixel coordinates instead of pin numbers to CSV. Used with --csv"
     )]
-    write_threads: bool,
+    write_coords: bool,
 }
 
 fn main() {
@@ -68,9 +68,9 @@ fn main() {
         radius,
         output,
         csv,
-        csv_header,
+        header,
         no_img,
-        write_threads,
+        write_coords,
     } = Opt::from_args();
 
     let img = open(&path).expect("Couldn't load target image");
@@ -79,21 +79,21 @@ fn main() {
     let length = radius * 2 + 1;
     let thread_coords = generate_threads(img, threads, pins, radius, length);
 
-    let mut out_dir = output.unwrap_or(path.parent().unwrap_or(Path::new(".")).to_path_buf());
     let prefix = format!(
         "{}_{}_{}",
         path.file_stem().unwrap().to_str().unwrap(),
         pins,
         threads
     );
+    let mut out_dir = output.unwrap_or(path);
 
     if !no_img {
         save_img(&mut out_dir, &prefix, &thread_coords, length);
     }
 
     if csv {
-        let optional_header = csv_header.then(|| {
-            if write_threads {
+        let optional_header = header.then(|| {
+            if write_coords {
                 vec!["x1", "y1", "x2", "y2"]
             } else {
                 vec!["pins"]
@@ -104,7 +104,7 @@ fn main() {
             &prefix,
             &thread_coords,
             optional_header,
-            write_threads,
+            write_coords,
         );
     }
 }
@@ -156,9 +156,11 @@ fn save_csv(
     } else {
         |(_, _, pin): &(Array1<u32>, Array1<u32>, usize)| vec![format!("{}", pin)]
     };
-    thread_coords.iter().map(formatter).for_each(|thread| {
-        writer.write_record(thread).expect("Failed to write thread");
-    });
+    for thread_coord in thread_coords {
+        writer
+            .write_record(formatter(thread_coord))
+            .expect("Failed to write thread");
+    }
 }
 
 fn generate_threads(
