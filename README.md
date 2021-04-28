@@ -10,8 +10,8 @@ A run of this program performs the following steps:
 
 1. The target image is pre-processed (cropped, grayscaled, inverted and masked).
 1. Starting at pin `0`, the threading algorithm:
-   1. Records the "fittest" pin (sum of luminance across the thread between the old pin and the new one).
-	1. Repeats 2.1 with the best pin as the old pin until the max # threads are reached or the best pin is the old pin.
+	1. Records the "fittest" pin (sum of luminance across the thread between the old pin and the new one).
+	1. Repeats 2.i with the best pin as the old pin until the max # threads are reached or the best pin is the old pin.
 1. The threaded image (and desired CSV data) is generated and saved to the target directory.
 
 Feedback and PRs are encouraged!
