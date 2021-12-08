@@ -3,6 +3,7 @@ use image::{
     imageops::crop, imageops::grayscale, imageops::invert, imageops::resize, imageops::FilterType,
     open, DynamicImage, GenericImageView, GrayImage, Luma, SubImage,
 };
+use nalgebra::{vector, EuclideanNorm, Norm};
 use ndarray::{array, Array, Array1};
 use std::{cmp, f32::consts::PI, path::PathBuf};
 use structopt::StructOpt;
@@ -26,7 +27,12 @@ struct Opt {
         help = "Radius of output image in pixels. Should be no greater than l = min(input_width, input_height). Defaults to l otherwise, or if omitted"
     )]
     radius: Option<u32>,
-    #[structopt(short, long, parse(from_os_str), help = "Path to output image")]
+    #[structopt(
+        short,
+        long,
+        parse(from_os_str),
+        help = "Path to output image. Defaults to input's directory"
+    )]
     output: Option<PathBuf>,
     #[structopt(
         long,
@@ -74,9 +80,10 @@ fn main() {
     } = Opt::from_args();
 
     let img = open(&path).expect("Couldn't load target image");
-    let min_edge = cmp::min(img.width(), img.height());
-    let radius = cmp::min(min_edge, radius.unwrap_or(min_edge));
+    let min_edge_length = img.width().min(img.height());
+    let radius = radius.map_or(min_edge_length, |radius| radius.min(min_edge_length));
     let length = radius * 2 + 1;
+
     let thread_coords = generate_threads(img, threads, pins, radius, length);
 
     let prefix = format!(
@@ -112,15 +119,17 @@ fn main() {
 fn save_img(
     out_dir: &mut PathBuf,
     prefix: &str,
-    thread_coords: &[(Array1<u32>, Array1<u32>, usize)],
+    thread_coords: &[(Array1<f64>, Array1<f64>, usize)],
     length: u32,
 ) {
     let mut img_threaded = GrayImage::from_pixel(length, length, Luma([255]));
-    thread_coords.iter().for_each(|(x_line, y_line, _)| {
+    for (x_line, y_line, _) in thread_coords {
+        #[allow(clippy::cast_sign_loss)] // coordinates are positive
+        #[allow(clippy::cast_possible_truncation)] // truncation is desired
         x_line.iter().zip(y_line.iter()).for_each(|(x, y)| {
-            img_threaded[(*x, *y)].0[0] = 0;
-        })
-    });
+            img_threaded[(*x as u32, *y as u32)].0[0] = 0;
+        });
+    }
     out_dir.set_file_name(format!("{}_threaded", prefix));
     out_dir.set_extension("png");
     img_threaded
@@ -131,7 +140,7 @@ fn save_img(
 fn save_csv(
     out_dir: &mut PathBuf,
     prefix: &str,
-    thread_coords: &[(Array1<u32>, Array1<u32>, usize)],
+    thread_coords: &[(Array1<f64>, Array1<f64>, usize)],
     optional_header: Option<Vec<&str>>,
     write_threads: bool,
 ) {
@@ -144,17 +153,17 @@ fn save_csv(
             .expect("Failed to write header");
     }
     let formatter = if write_threads {
-        |(x_line, y_line, _): &(Array1<u32>, Array1<u32>, usize)| {
+        |(x_line, y_line, _): &(Array1<f64>, Array1<f64>, usize)| {
             let last = x_line.len() - 1;
             vec![
-                format!("{}", x_line[0]),
-                format!("{}", y_line[0]),
-                format!("{}", x_line[last]),
-                format!("{}", y_line[last]),
+                format!("{}", x_line[0] as u32),
+                format!("{}", y_line[0] as u32),
+                format!("{}", x_line[last] as u32),
+                format!("{}", y_line[last] as u32),
             ]
         }
     } else {
-        |(_, _, pin): &(Array1<u32>, Array1<u32>, usize)| vec![format!("{}", pin)]
+        |(_, _, pin): &(Array1<f64>, Array1<f64>, usize)| vec![format!("{}", pin)]
     };
     for thread_coord in thread_coords {
         writer
@@ -169,71 +178,77 @@ fn generate_threads(
     num_pins: usize,
     radius: u32,
     length: u32,
-) -> Vec<(Array1<u32>, Array1<u32>, usize)> {
+) -> Vec<(Array1<f64>, Array1<f64>, usize)> {
     let mut img_preprocessed = preprocess_img(img, radius, length);
-    let pin_coords = Array::linspace(0., 2. * PI, num_pins + 1).mapv(|alpha| {
-        array![
-            radius as f32 * (1. + alpha.cos()),
-            radius as f32 * (1. + alpha.sin()),
-        ]
-    });
+
+    let pin_positions = Array::linspace(0., 2. * PI, num_pins + 1)
+        .to_vec()
+        .into_iter()
+        .map(|alpha| {
+            vector![
+                f64::from(radius) * f64::from(1. + alpha.cos()),
+                f64::from(radius) * f64::from(1. + alpha.sin())
+            ]
+        })
+        .collect::<Vec<_>>();
 
     let mut threads = Vec::with_capacity(max_threads);
     let mut prev_pins = [0; 2];
-    let mut old_pin = 0;
     let mut best_pin = 0;
     let mut best_xline = array![];
     let mut best_yline = array![];
 
     for i in 0..max_threads {
         let mut best_line = 0;
-        let old_coord = &pin_coords[old_pin];
+        let prev_pin = prev_pins[1];
+        let prev_pos = &pin_positions[prev_pin];
         for i in 1..num_pins {
-            let pin = (old_pin + i) % num_pins;
-            let pin_coord = &pin_coords[pin];
-            let length = euclidean(&old_coord, &pin_coord) as usize;
-            let x_line = Array::linspace(old_coord[0], pin_coord[0], length).mapv(|x| x as u32);
-            let y_line = Array::linspace(old_coord[1], pin_coord[1], length).mapv(|y| y as u32);
+            let next_pin = (prev_pin + i) % num_pins;
+            let next_pin_pos = &pin_positions[next_pin];
+
+            #[allow(clippy::cast_sign_loss)] // distance is positive
+            #[allow(clippy::cast_possible_truncation)] // truncation is desired
+            let dist = EuclideanNorm.metric_distance(prev_pos, next_pin_pos) as usize;
+            let x_line = Array::linspace(prev_pos[0], next_pin_pos[0], dist);
+            let y_line = Array::linspace(prev_pos[1], next_pin_pos[1], dist);
+            #[allow(clippy::cast_sign_loss)] // coordinates are positive
+            #[allow(clippy::cast_possible_truncation)] // truncation is desired
             let line_sum = x_line
                 .iter()
                 .zip(y_line.iter())
-                .map(|(&x, &y)| img_preprocessed[(x, y)].0[0] as u32)
+                .map(|(&x, &y)| {
+                    u32::from(img_preprocessed[(x.floor() as u32, y.floor() as u32)].0[0])
+                })
                 .sum();
-            if line_sum > best_line && !prev_pins.contains(&pin) {
+
+            if line_sum > best_line && !prev_pins.contains(&next_pin) {
                 best_line = line_sum;
                 best_xline = x_line;
                 best_yline = y_line;
-                best_pin = pin;
+                best_pin = next_pin;
             }
         }
 
-        prev_pins.swap(0, 1);
-        prev_pins[1] = best_pin;
+        prev_pins = [prev_pins[1], best_pin];
 
         threads.push((best_xline.clone(), best_yline.clone(), best_pin));
+        #[allow(clippy::cast_sign_loss)] // coordinates are positive
+        #[allow(clippy::cast_possible_truncation)] // truncation is desired
         best_xline
             .iter()
             .zip(best_yline.iter())
             .for_each(|(&x, &y)| {
-                img_preprocessed[(x, y)].0[0] = 0;
+                img_preprocessed[(x as u32, y as u32)].0[0] = 0;
             });
 
-        if best_pin == old_pin {
+        if best_pin == prev_pin {
             break;
         }
 
-        old_pin = best_pin;
-
         print!("\rPlacing thread {}/{}", i + 1, max_threads);
     }
-    println!("");
+    println!();
     threads
-}
-
-fn euclidean(old_coord: &Array1<f32>, pin_coord: &Array1<f32>) -> f32 {
-    let mut diff = old_coord - pin_coord;
-    diff.mapv_inplace(|axis| axis.powf(2.));
-    diff.sum().sqrt()
 }
 
 fn preprocess_img(mut img: DynamicImage, radius: u32, length: u32) -> GrayImage {
@@ -244,9 +259,7 @@ fn preprocess_img(mut img: DynamicImage, radius: u32, length: u32) -> GrayImage 
     img_resized
         .enumerate_pixels_mut()
         .for_each(|(x, y, pixel)| {
-            if (x as i32 - length as i32 / 2).pow(2) + (y as i32 - length as i32 / 2).pow(2)
-                > radius.pow(2) as i32
-            {
+            if (x - length / 2).pow(2) + (y - length / 2).pow(2) > radius.pow(2) {
                 pixel.0[0] = 0;
             }
         });
