@@ -216,7 +216,7 @@ fn generate_threads(
                     .iter()
                     .zip(y_line.iter())
                     .map(|(&x, &y)| {
-                        u32::from(img_preprocessed[(x.floor() as u32, y.floor() as u32)].0[0])
+                        u32::from(img_preprocessed[(x.floor() as u32, y.floor() as u32)][0])
                     })
                     .sum();
                 (x_line, y_line, line_sum)
@@ -238,7 +238,7 @@ fn generate_threads(
         #[allow(clippy::cast_sign_loss)] // coordinates are positive
         #[allow(clippy::cast_possible_truncation)] // truncation is desired
         best.xs.iter().zip(best.ys.iter()).for_each(|(&x, &y)| {
-            img_preprocessed[(x as u32, y as u32)].0[0] = 0;
+            img_preprocessed[(x as u32, y as u32)][0] = 0;
         });
 
         if best.dest_pin == prev_pin {
@@ -297,8 +297,10 @@ fn preprocess_img(mut img: DynamicImage, radius: u32, length: u32) -> GrayImage 
     img_resized
         .enumerate_pixels_mut()
         .for_each(|(x, y, pixel)| {
-            if (x - length / 2).pow(2) + (y - length / 2).pow(2) > radius.pow(2) {
-                pixel.0[0] = 0;
+            if (x.saturating_sub(length / 2)).pow(2) + (y.saturating_sub(length / 2)).pow(2)
+                > radius.pow(2)
+            {
+                pixel[0] = 0;
             }
         });
     img_resized

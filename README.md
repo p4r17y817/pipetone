@@ -168,34 +168,14 @@ The patterns observed in the upper-rightmost corner of each table seem to occur 
 
 ## 🚀 Performance
 
-Rough measurement using the `time` utility yields the following execution times. The same 1920x1080 image and parameters (`threadTone.py`'s defaults) were used:
+Rough measurement using `hyperfine` yields the following average execution times.
+The same 1920x1080 image parameters were used.
 
-### pipetone
-
-```bash
-❯ hyperfine --warmup 3 'target/release/pipetone images/house.jpg -p 200 -r 500'
-Benchmark #1: target/release/pipetone images/house.jpg -p 200 -r 500
-  Time (mean ± σ):     997.9 ms ±  14.6 ms    [User: 994.5 ms, System: 95.5 ms]
-  Range (min … max):   978.3 ms … 1023.3 ms    10 runs
-```
-
-### Threadtone
-
-```bash
-❯ hyperfine --warmup 3 'python3 threadTone.py images/house.jpg'
-Benchmark #1: python3 threadTone.py images/house.jpg
-  Time (mean ± σ):     21.941 s ±  0.513 s    [User: 22.322 s, System: 0.957 s]
-  Range (min … max):   21.522 s … 23.110 s    10 runs
-```
-
-### Debug Mode: A Cautionary Tale...
-
-```bash
-❯ hyperfine --warmup 3 'target/debug/pipetone images/house.jpg -p 200 -r 500'
-Benchmark #1: target/debug/pipetone images/house.jpg -p 200 -r 500
-  Time (mean ± σ):     52.381 s ±  3.390 s    [User: 54.234 s, System: 0.088 s]
-  Range (min … max):   48.479 s … 59.454 s    10 runs
-```
+Program|Result
+-|-
+pipetone (release)|267.5 ms ± 8.3 ms
+pipetone (debug)|9.906 s ± 0.051 s
+Threadtone|4.152 s ± 0.030 s
 
 ## Notes
 
