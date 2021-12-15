@@ -5,7 +5,8 @@ use image::{
 };
 use nalgebra::{vector, EuclideanNorm, Norm};
 use ndarray::{array, Array, Array1};
-use std::{cmp, f32::consts::PI, path::PathBuf};
+use rayon::prelude::*;
+use std::{cmp, f32::consts::PI, path::PathBuf, sync::Mutex};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -194,54 +195,71 @@ fn generate_threads(
 
     let mut threads = Vec::with_capacity(max_threads);
     let mut prev_pins = [0; 2];
-    let mut best_pin = 0;
-    let mut best_xline = array![];
-    let mut best_yline = array![];
 
     for i in 0..max_threads {
-        let mut best_line = 0;
+        let best = Mutex::new(Best {
+            sum: 0,
+            pin: 0,
+            x_line: array![],
+            y_line: array![],
+        });
         let prev_pin = prev_pins[1];
         let prev_pos = &pin_positions[prev_pin];
-        for i in 1..num_pins {
-            let next_pin = (prev_pin + i) % num_pins;
-            let next_pin_pos = &pin_positions[next_pin];
+        (1..num_pins)
+            .into_par_iter()
+            .map(|i| (prev_pin + i) % num_pins)
+            .zip(
+                pin_positions[prev_pin..]
+                    .par_iter()
+                    .chain(&pin_positions[..prev_pin])
+                    .map(|next_pos| {
+                        #[allow(clippy::cast_sign_loss)] // distance is positive
+                        #[allow(clippy::cast_possible_truncation)]
+                        // truncation is desired
+                        let dist = EuclideanNorm.metric_distance(prev_pos, next_pos) as usize;
+                        let x_line = Array::linspace(prev_pos[0], next_pos[0], dist);
+                        let y_line = Array::linspace(prev_pos[1], next_pos[1], dist);
+                        #[allow(clippy::cast_sign_loss)] // coordinates are positive
+                        #[allow(clippy::cast_possible_truncation)]
+                        // truncation is desired
+                        let line_sum = x_line
+                            .iter()
+                            .zip(y_line.iter())
+                            .map(|(&x, &y)| {
+                                u32::from(
+                                    img_preprocessed[(x.floor() as u32, y.floor() as u32)].0[0],
+                                )
+                            })
+                            .sum();
+                        (x_line, y_line, line_sum)
+                    }),
+            )
+            .for_each(|(next_pin, (x_line, y_line, line_sum))| {
+                let mut best = best.lock().unwrap();
+                if line_sum > best.sum && !prev_pins.contains(&next_pin) {
+                    *best = Best {
+                        sum: line_sum,
+                        x_line,
+                        y_line,
+                        pin: next_pin,
+                    };
+                }
+            });
 
-            #[allow(clippy::cast_sign_loss)] // distance is positive
-            #[allow(clippy::cast_possible_truncation)] // truncation is desired
-            let dist = EuclideanNorm.metric_distance(prev_pos, next_pin_pos) as usize;
-            let x_line = Array::linspace(prev_pos[0], next_pin_pos[0], dist);
-            let y_line = Array::linspace(prev_pos[1], next_pin_pos[1], dist);
-            #[allow(clippy::cast_sign_loss)] // coordinates are positive
-            #[allow(clippy::cast_possible_truncation)] // truncation is desired
-            let line_sum = x_line
-                .iter()
-                .zip(y_line.iter())
-                .map(|(&x, &y)| {
-                    u32::from(img_preprocessed[(x.floor() as u32, y.floor() as u32)].0[0])
-                })
-                .sum();
+        let best = best.lock().unwrap();
+        prev_pins = [prev_pins[1], best.pin];
 
-            if line_sum > best_line && !prev_pins.contains(&next_pin) {
-                best_line = line_sum;
-                best_xline = x_line;
-                best_yline = y_line;
-                best_pin = next_pin;
-            }
-        }
-
-        prev_pins = [prev_pins[1], best_pin];
-
-        threads.push((best_xline.clone(), best_yline.clone(), best_pin));
+        threads.push((best.x_line.clone(), best.y_line.clone(), best.pin));
         #[allow(clippy::cast_sign_loss)] // coordinates are positive
         #[allow(clippy::cast_possible_truncation)] // truncation is desired
-        best_xline
+        best.x_line
             .iter()
-            .zip(best_yline.iter())
+            .zip(best.y_line.iter())
             .for_each(|(&x, &y)| {
                 img_preprocessed[(x as u32, y as u32)].0[0] = 0;
             });
 
-        if best_pin == prev_pin {
+        if best.pin == prev_pin {
             break;
         }
 
@@ -249,6 +267,13 @@ fn generate_threads(
     }
     println!();
     threads
+}
+
+struct Best {
+    sum: u32,
+    pin: usize,
+    x_line: Array1<f64>,
+    y_line: Array1<f64>,
 }
 
 fn preprocess_img(mut img: DynamicImage, radius: u32, length: u32) -> GrayImage {
