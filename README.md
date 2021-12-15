@@ -26,7 +26,7 @@ This assumes the latest version of [`cargo`](https://doc.rust-lang.org/cargo/get
 ❯ cargo run --release thread_me.png
 ```
 
-This runs pipetone in release mode (see [Performance](#performance) and [Notes](#notes)) on `thread_me.png` (leaving it unaltered) and conjures its "threaded" twin at `./threaded.png`.
+This runs pipetone in release mode (see [Performance](#performance) and [Notes](#notes)) which generates a "threaded" version of `thread_me.png` at `./threaded.png`.
 
 ### Options
 
