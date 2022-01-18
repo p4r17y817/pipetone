@@ -1,15 +1,22 @@
 [package]
 name = "pipetone"
 version = "0.1.0"
-authors = ["p4r17y817 <christian.dunn@warwick.ac.uk>"]
+authors = ["wabisabia <bkkchris.dunn@outlook.com>"]
 edition = "2021"
+about = "A Rust port of threadTone.py (https://github.com/theveloped/ThreadTone)"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[profile.release]
+debug = true
 
 [dependencies]
 image = "0.23.14"
 ndarray = "0.15.1"
 nalgebra = "0.29.0"
-structopt = "0.3.21"
 csv = "1.1.6"
 rayon = "1.5.1"
+
+[dependencies.clap]
+version = "3.0.9"
+features = ["derive"]
