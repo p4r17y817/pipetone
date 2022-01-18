@@ -3,7 +3,7 @@ name = "pipetone"
 version = "0.1.0"
 authors = ["wabisabia <bkkchris.dunn@outlook.com>"]
 edition = "2021"
-about = "A Rust port of threadTone.py (https://github.com/theveloped/ThreadTone)"
+description = "A Rust port of threadTone.py (https://github.com/theveloped/ThreadTone)"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
