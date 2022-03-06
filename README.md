@@ -1,6 +1,6 @@
 # Pipetone 🧵
 
-🚀 A fast, Rusty port of `threadTone.py`
+🚀 A faster Rust port of `threadTone.py`
 
 🌟 Full credit goes to [@theveloped](https://github.com/theveloped) for inspiring this implementation: check out their work [here](https://github.com/theveloped/ThreadTone)!
 
